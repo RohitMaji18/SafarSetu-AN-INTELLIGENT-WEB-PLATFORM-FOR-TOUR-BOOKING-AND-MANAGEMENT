@@ -4,6 +4,9 @@ const UserModel = require("./models/user-model");
 const homeRoutes = require("./routes/home-routes");
 const userRoutes = require("./routes/user-routes");
 const tourRoutes = require("./routes/tour-routes");
+const bookingsRoutes = require("./routes/bookings-routes");
+const paymentRoutes = require("./routes/payment-routes");
+const adminRoutes = require("./routes/admin-routes");
 const cors = require("cors");
 
 // Initialize Express
@@ -20,6 +23,9 @@ app.use(express.static("public"));
 app.use("/api/v1", homeRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1", tourRoutes);
+app.use("/api/v1", bookingsRoutes);
+app.use("/api/v1", paymentRoutes);
+app.use("/api/v1/admin", adminRoutes);
 
 //connect server
 const Port = 3000;

@@ -1,3 +1,39 @@
+# Root .gitignore for Travlystiq
+
+# Node modules for backend and frontend
+/Backend/node_modules/
+/Frontend/node_modules/
+
+# Environment files (do NOT commit secret keys)
+**/.env
+**/.env.*
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+
+# Editor directories
+.vscode/
+.idea/
+
+# Build outputs
+/Frontend/dist/
+/Frontend/build/
+/Backend/dist/
+
+# Coverage
+/coverage/
+
+# Misc
+.parcel-cache/
+.turbo/
+.cache/
 # Logs
 logs
 *.log

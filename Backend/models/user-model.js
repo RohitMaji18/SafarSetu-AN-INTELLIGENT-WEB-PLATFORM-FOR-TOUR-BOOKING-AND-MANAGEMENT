@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-// Define the user schema of the terralux
+// Define the user schema of the travlystiq
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -44,6 +44,19 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
     select: false,
+  },
+  // OTP and email verification fields
+  otp: {
+    type: String,
+    default: null,
+  },
+  otpExpires: {
+    type: Date,
+    default: null,
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false,
   },
 });
 

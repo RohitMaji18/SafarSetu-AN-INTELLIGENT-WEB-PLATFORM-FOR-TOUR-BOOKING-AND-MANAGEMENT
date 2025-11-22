@@ -1,6 +1,7 @@
 const userModel = require("../models/user-model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { sendOTPEmail } = require("../utils/mailService");
 
 //helper function to generate sign JWT token--
 const signToken = (userId) => {
@@ -9,11 +10,16 @@ const signToken = (userId) => {
   });
 };
 
-//1---for user registration controller brother------------------------
+//helper function to generate OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+//1---for user registration controller - send OTP to email------------------------
 exports.register = async (req, res) => {
   try {
     //import the data from req body;
-    const { name, email, password, confirmPassword } = req.body;
+    const { name, email, password, confirmPassword, adminCode } = req.body;
 
     //validate the data
     if (!name || !email || !password || !confirmPassword) {
@@ -27,41 +33,113 @@ exports.register = async (req, res) => {
 
     //check if the user already exists
     const existingUser = await userModel.findOne({ email });
-    if (existingUser) {
-      {
-        return res.status(400).json({ message: "User already exits" });
-      }
+    if (existingUser && existingUser.isEmailVerified) {
+      return res.status(400).json({ message: "User already exists" });
     }
+
+    // If unverified user exists, delete it to start fresh
+    if (existingUser && !existingUser.isEmailVerified) {
+      await userModel.deleteOne({ email });
+    }
+
     //hash the password before saving it to the database
     const hashedPassword = await bcrypt.hash(password, 10); //10 is the salt rounds
 
-    //create a new user
+    // Generate OTP
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Check if admin code is provided and valid
+    let userRole = "user";
+    if (adminCode && adminCode === process.env.ADMIN_REGISTRATION_CODE) {
+      userRole = "admin";
+    }
+
+    //create a new user with unverified status
     const newUser = new userModel({
       name,
       email,
       password: hashedPassword,
-      confirmPassword: hashedPassword,
+      otp,
+      otpExpires,
+      isEmailVerified: false,
+      role: userRole,
     });
     //save the user on the database
     await newUser.save();
 
-    //generate a JWT token for the user
-    const token = signToken(newUser._id);
-    //send the response to the client
+    // Send OTP email
+    const emailResult = await sendOTPEmail(email, otp, name);
+    if (!emailResult.success) {
+      await userModel.deleteOne({ email });
+      return res.status(500).json({ message: "Failed to send OTP email" });
+    }
 
+    //send the response to the client
     res.status(201).json({
-      message: "User registered successfully",
-      token,
-      user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        photo: newUser.photo,
-      },
+      message:
+        "OTP sent to your email. Please verify your email to complete registration.",
+      email,
+      userId: newUser._id,
     });
   } catch (error) {
     console.error("Error during your registration:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//Verify OTP and complete registration------------------------
+exports.verifyOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+
+    // Find user with matching email and OTP
+    const user = await userModel.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({ message: "Email already verified" });
+    }
+
+    // Check if OTP matches
+    if (user.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    // Check if OTP has expired
+    if (user.otpExpires < new Date()) {
+      return res.status(400).json({ message: "OTP has expired" });
+    }
+
+    // Mark email as verified and clear OTP
+    user.isEmailVerified = true;
+    user.otp = null;
+    user.otpExpires = null;
+    await user.save();
+
+    // Generate JWT token
+    const token = signToken(user._id);
+
+    res.status(200).json({
+      message: "Email verified successfully. Registration complete!",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        photo: user.photo,
+      },
+    });
+  } catch (error) {
+    console.error("Error during OTP verification:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -183,6 +261,45 @@ exports.updateMe = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating user data:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Promote user to admin - accessible to super admins only
+exports.promoteToAdmin = async (req, res) => {
+  try {
+    const { email, adminCode } = req.body;
+
+    if (!email || !adminCode) {
+      return res
+        .status(400)
+        .json({ message: "Email and admin code are required" });
+    }
+
+    // Verify admin code
+    if (adminCode !== process.env.ADMIN_REGISTRATION_CODE) {
+      return res.status(401).json({ message: "Invalid admin code" });
+    }
+
+    // Find and update user to admin role
+    const user = await userModel
+      .findOneAndUpdate(
+        { email },
+        { role: "admin", updatedAt: Date.now() },
+        { new: true }
+      )
+      .select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      message: "User promoted to admin successfully",
+      user,
+    });
+  } catch (error) {
+    console.error("Error promoting user to admin:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

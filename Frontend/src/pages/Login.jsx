@@ -50,7 +50,7 @@ function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Login to Your Account</CardTitle>
-          <CardDescription>Welcome back to TerraLux!</CardDescription>
+          <CardDescription>Welcome back to Travlystiq!</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>

@@ -1,0 +1,29 @@
+ # Frontend .gitignore (Vite/React)
+
+ # Node
+ node_modules/
+
+ # Build output
+ dist/
+ build/
+
+ # Environment
+ .env
+ .env.local
+ .env.*.local
+
+ # Vite cache
+ .vite/
+ .cache/
+
+ # Logs
+ npm-debug.log*
+ yarn-error.log*
+
+ # Editor
+ .vscode/
+ .idea/
+ .DS_Store
+
+ # Coverage
+ coverage/

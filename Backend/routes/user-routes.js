@@ -9,6 +9,10 @@ const Router = express.Router();
 Router.post("/register", authController.register);
 //2---for user login controller brother------------------------
 Router.post("/login", authController.login);
+//3---Verify OTP after registration
+Router.post("/verify-otp", authController.verifyOTP);
+//4---Promote user to admin (requires valid admin code)
+Router.post("/promote-admin", authController.promoteToAdmin);
 //private routes (frontend  should remove token)
 Router.post("/logout", authController.logout);
 

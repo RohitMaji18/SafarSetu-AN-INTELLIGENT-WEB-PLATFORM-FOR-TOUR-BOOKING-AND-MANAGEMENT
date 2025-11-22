@@ -20,6 +20,7 @@ function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [adminCode, setAdminCode] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -41,13 +42,21 @@ function Register() {
       confirmPassword,
     };
 
+    // Add admin code if provided
+    if (adminCode) {
+      userData.adminCode = adminCode;
+    }
+
     try {
-      await registerUser(userData);
+      const response = await registerUser(userData);
 
       // Show success toast
-      toast.success("Registration successful! You can now log in.");
+      toast.success(
+        "OTP sent to your email! Please verify to complete registration."
+      );
 
-      navigate("/login");
+      // Redirect to OTP verification page with email
+      navigate("/verify-otp", { state: { email } });
     } catch (err) {
       // LEAVE THIS EMPTY
       // api.js is already showing the error toast.
@@ -61,7 +70,7 @@ function Register() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Create an Account</CardTitle>
           <CardDescription>
-            Enter your information to join TerraLux.
+            Enter your information to join Travlystiq.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -108,6 +117,21 @@ function Register() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="admin-code">Admin Code (Optional)</Label>
+                <Input
+                  id="admin-code"
+                  type="password"
+                  placeholder="Leave blank for regular user"
+                  value={adminCode}
+                  onChange={(e) => setAdminCode(e.target.value)}
+                />
+                {adminCode && (
+                  <p className="text-xs text-orange-600">
+                    ⚠️ Registering as admin
+                  </p>
+                )}
               </div>
               {error && (
                 <p className="text-sm text-center text-destructive">{error}</p>

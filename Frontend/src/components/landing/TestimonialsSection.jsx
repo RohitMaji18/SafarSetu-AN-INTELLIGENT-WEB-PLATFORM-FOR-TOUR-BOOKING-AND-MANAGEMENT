@@ -15,7 +15,7 @@ export const TestimonialsSection = () => (
             <Quote className="h-8 w-8 text-primary mb-4" />
             <p className="italic text-muted-foreground">
               "The 'Backwaters Bliss' tour was a dream. Floating on the
-              houseboat was so peaceful. TerraLux made everything easy."
+              houseboat was so peaceful. Travlystiq made everything easy."
             </p>
             <div className="flex items-center mt-6">
               <Avatar className="h-12 w-12">

@@ -28,7 +28,7 @@ const Navbar = () => {
     <nav className="w-full p-4 bg-card border-b border-border">
       <div className="container flex items-center justify-between mx-auto">
         <Link to="/" className="text-xl font-bold text-primary">
-          TerraLux
+          Travlystiq
         </Link>
 
         <div className="flex items-center space-x-6">
@@ -64,6 +64,26 @@ const Navbar = () => {
                 <DropdownMenuItem asChild>
                   <Link to="/profile">My Profile</Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/my-bookings">My Bookings</Link>
+                </DropdownMenuItem>
+                {user.role === "admin" && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-orange-500">
+                      Admin Panel
+                    </DropdownMenuLabel>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin">Dashboard</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/users">Manage Users</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/bookings">Manage Bookings</Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={logout}
