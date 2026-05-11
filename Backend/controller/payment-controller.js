@@ -9,17 +9,14 @@ exports.createCheckoutSession = async (req, res) => {
   try {
     const { tour, tourTitle, numberOfPeople, totalPrice, tourId, bookingDate } =
       req.body;
-
     if (!tourId || !numberOfPeople || typeof totalPrice === "undefined") {
       return res.status(400).json({
         status: "error",
         message: "Missing required fields: tourId, numberOfPeople, totalPrice",
       });
     }
-
     // Convert price to cents (Stripe uses cents for INR)
     const priceInCents = Math.round(totalPrice * 100);
-
     // Create line item for the tour booking
     const lineItems = [
       {

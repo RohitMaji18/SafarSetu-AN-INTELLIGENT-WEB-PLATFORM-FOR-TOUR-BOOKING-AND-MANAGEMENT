@@ -35,28 +35,22 @@ exports.createBooking = async (req, res) => {
     // Prefer authenticated user (if you have auth middleware), otherwise accept user from body
     const userId = req.user?.id || req.body.user || undefined;
     const { tour, bookingDate, numberOfPeople, totalPrice } = req.body;
-
     if (!tour || !numberOfPeople || typeof totalPrice === "undefined") {
       return res
         .status(400)
         .json({ status: "error", message: "Missing required booking fields" });
     }
-
     const bookingData = {
       tour,
       bookingDate: bookingDate || Date.now(),
       numberOfPeople,
       totalPrice,
     };
-
     // only attach user when available
     if (userId) bookingData.user = userId;
-
     // keep initial status as pending so admin can confirm later
     bookingData.status = "pending";
-
     const booking = await BookTour.create(bookingData);
-
     res.status(201).json({ status: "success", data: { booking } });
   } catch (error) {
     console.error(error);

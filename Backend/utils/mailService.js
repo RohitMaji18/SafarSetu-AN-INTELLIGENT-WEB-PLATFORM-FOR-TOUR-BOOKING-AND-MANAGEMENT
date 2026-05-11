@@ -50,14 +50,42 @@ if (process.env.MAIL_HOST) {
 
 const transporter = nodemailer.createTransport(transporterConfig);
 
-// Send OTP email for verification
-exports.sendOTPEmail = async (email, otp, name) => {
+// Send OTP email for verification or reset password
+exports.sendOTPEmail = async (email, otpOrUrl, name, type = 'otp') => {
   try {
-    const mailOptions = {
-      from: "kishan kumawat",
-      to: email,
-      subject: "Email Verification - Travlystiq OTP",
-      html: `
+    let subject, html;
+
+    if (type === 'reset') {
+      subject = "Password Reset - Travlystiq";
+      html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
+            <h2 style="color: #333; text-align: center;">Travlystiq - Password Reset</h2>
+            <p style="color: #666; font-size: 16px;">Hello <strong>${name}</strong>,</p>
+            <p style="color: #666; font-size: 16px;">
+              You requested a password reset for your Travlystiq account. Click the button below to reset your password:
+            </p>
+            <div style="text-align: center; margin: 20px 0;">
+              <a href="${otpOrUrl}" style="background-color: #ff9500; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Reset Password
+              </a>
+            </div>
+            <p style="color: #666; font-size: 14px;">
+              This link will expire in 10 minutes. If you did not request a password reset, please ignore this email.
+            </p>
+            <p style="color: #666; font-size: 14px;">
+              For security reasons, do not share this email with anyone.
+            </p>
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+            <p style="color: #999; font-size: 12px; text-align: center;">
+              Travlystiq Travel &copy; 2025. All rights reserved.
+            </p>
+          </div>
+        </div>
+      `;
+    } else {
+      subject = "Email Verification - Travlystiq OTP";
+      html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
             <h2 style="color: #333; text-align: center;">Travlystiq - Email Verification</h2>
@@ -67,7 +95,7 @@ exports.sendOTPEmail = async (email, otp, name) => {
             </p>
             <div style="background-color: #ff9500; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0;">
               <p style="font-size: 32px; font-weight: bold; color: white; margin: 0; letter-spacing: 2px;">
-                ${otp}
+                ${otpOrUrl}
               </p>
             </div>
             <p style="color: #666; font-size: 14px;">
@@ -82,13 +110,20 @@ exports.sendOTPEmail = async (email, otp, name) => {
             </p>
           </div>
         </div>
-      `,
+      `;
+    }
+
+    const mailOptions = {
+      from: "kishan kumawat",
+      to: email,
+      subject,
+      html,
     };
 
     await transporter.sendMail(mailOptions);
-    return { success: true, message: "OTP sent successfully" };
+    return { success: true, message: `${type === 'reset' ? 'Reset email' : 'OTP'} sent successfully` };
   } catch (error) {
-    console.error("Error sending OTP email:", error);
+    console.error(`Error sending ${type === 'reset' ? 'reset' : 'OTP'} email:`, error);
     return { success: false, message: error.message };
   }
 };

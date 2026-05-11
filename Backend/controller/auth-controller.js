@@ -1,6 +1,7 @@
 const userModel = require("../models/user-model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const { sendOTPEmail } = require("../utils/mailService");
 
 //helper function to generate sign JWT token--
@@ -145,32 +146,25 @@ exports.verifyOTP = async (req, res) => {
 };
 
 //login controller---------------------------------------
-//for user login brother
+//for user login
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    //validate the data
+    const { email, password } = req.body; //validate the data
     if (!email || !password) {
       return res.status(400).json({ message: "all fields are required" });
-    }
-
-    //check if the user + password exists
+    } //check if the user + password exists
     const user = await userModel.findOne({ email }).select("+password");
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
-
     //check the password is correct
     const is_match = await user.correctPassword(password, user.password);
     if (!is_match) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
-
     //generate a JWT token for the user ;
     const token = signToken(user._id);
     //send the response to the client
-
     res.status(200).json({
       message: "Login successful buddy",
       token,
@@ -184,7 +178,6 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     console.error("Error during login:", error);
-
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -261,6 +254,101 @@ exports.updateMe = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating user data:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Forgot Password - Send reset token to email
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Set token and expiration on user
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save({ validateBeforeSave: false });
+
+    // Send email with reset token
+    const resetURL = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
+    const emailResult = await sendOTPEmail(email, resetURL, user.name, 'reset');
+    if (!emailResult.success) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save({ validateBeforeSave: false });
+      return res.status(500).json({ message: "Failed to send reset email" });
+    }
+
+    res.status(200).json({
+      message: "Password reset token sent to email",
+    });
+  } catch (error) {
+    console.error("Error in forgot password:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Reset Password - Update password with token
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, password, confirmPassword } = req.body;
+
+    if (!token || !password || !confirmPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+
+    // Hash the token to compare with stored hash
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await userModel.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Token is invalid or has expired" });
+    }
+
+    // Update password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    user.resetPasswordChangedAt = Date.now();
+    await user.save();
+
+    // Generate new JWT token
+    const newToken = signToken(user._id);
+
+    res.status(200).json({
+      message: "Password reset successful",
+      token: newToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        photo: user.photo,
+      },
+    });
+  } catch (error) {
+    console.error("Error in reset password:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

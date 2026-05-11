@@ -3,9 +3,28 @@ import { toast } from "sonner"; // <-- IMPORT TOAST
 
 // Create an instance of axios with the base URL of your backend
 const apiClient = axios.create({
-  baseURL: "http://localhost:3000/api/v1",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1",
 });
+// --- REQUEST INTERCEPTOR ---
+// Har request se pehle ye check karega ki localStorage mein token hai ya nahi
+apiClient.interceptors.request.use(
+  (config) => {
+    // Check kar ki tune login ke time token kis naam se save kiya tha
+    // Agar 'token' hai toh yahi rehne de, agar 'jwt' hai toh change kar dena
+    const token = localStorage.getItem("token"); 
 
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log(`📤 Request to ${config.url} - Token sent ✅`);
+    } else {
+      console.warn(`📤 Request to ${config.url} - NO TOKEN FOUND ⚠️`);
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 // --- GLOBAL ERROR HANDLER ---
 // This intercepts all responses. If it's an error, it shows a toast.
 apiClient.interceptors.response.use(
@@ -14,6 +33,14 @@ apiClient.interceptors.response.use(
     // Handle errors
     const message =
       error.response?.data?.message || "An unexpected error occurred.";
+    
+    console.error(`❌ API Error:`, {
+      status: error.response?.status,
+      message: message,
+      url: error.config?.url,
+      hasToken: !!localStorage.getItem("token")
+    });
+
     toast.error(message); // Show the error toast
 
     // IMPORTANT: Re-throw the error so component .catch() blocks still work
@@ -31,14 +58,44 @@ export const loginUser = (credentials) => {
   return apiClient.post("/users/login", credentials);
 };
 
+// Forgot Password
+export const forgotPassword = (email) => {
+  return apiClient.post("/users/forgot-password", { email });
+};
+
+// Reset Password
+export const resetPassword = (data) => {
+  return apiClient.post("/users/reset-password", data);
+};
+
 // You can add other API functions for tours, bookings, etc. here in the future.
-export const getAllTours = () => {
-  return apiClient.get("/tours");
+export const getAllTours = (params = {}) => {
+  return apiClient.get("/tours", { params });
 };
 
 // Get a single tour by id
 export const getTour = (id) => {
   return apiClient.get(`/tours/${id}`);
+};
+
+// Get weather for a tour
+export const getTourWeather = (tourId) => {
+  return apiClient.get(`/tours/${tourId}/weather`);
+};
+
+// Get reviews for a tour
+export const getTourReviews = (tourId) => {
+  return apiClient.get(`/tours/${tourId}/reviews`);
+};
+
+// Get all reviews for landing page
+export const getAllReviews = () => {
+  return apiClient.get(`/reviews`);
+};
+
+// Submit a new review for a tour
+export const postTourReview = (tourId, reviewData) => {
+  return apiClient.post(`/tours/${tourId}/reviews`, reviewData);
 };
 
 // Create a booking (client-side booking endpoint)
@@ -110,6 +167,17 @@ export const updateBookingStatus = (bookingId, status) => {
 // Delete booking (admin)
 export const deleteAdminBooking = (bookingId) => {
   return apiClient.delete(`/admin/bookings/${bookingId}`);
+};
+
+
+
+// AI Recommendation Function
+export const getAIRecommendation = (requestData) => {
+  const payload =
+    typeof requestData === "string"
+      ? { userPreference: requestData }
+      : requestData;
+  return apiClient.post("/users/ai-recommend", payload);
 };
 
 export default apiClient;

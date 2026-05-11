@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { createBookingAfterPayment } from "../services/api";
+import { CheckCircle2, ArrowRight, Loader2, PartyPopper } from "lucide-react";
 
 export default function SuccessPage() {
   const [searchParams] = useSearchParams();
@@ -11,7 +12,6 @@ export default function SuccessPage() {
 
   useEffect(() => {
     if (sessionId) {
-      toast.success("Payment successful! Your booking has been confirmed.");
       createBooking();
     }
   }, [sessionId]);
@@ -19,23 +19,22 @@ export default function SuccessPage() {
   const createBooking = async () => {
     setIsCreatingBooking(true);
     try {
-      // Create booking in database using session ID
+      // API call to confirm booking
       await createBookingAfterPayment(sessionId);
+      toast.success("Payment verified! Booking confirmed.");
 
-      // Redirect to My Bookings after 3 seconds
+      // Redirect logic
       const timer = setTimeout(() => {
         navigate("/my-bookings");
-      }, 3000);
+      }, 4000);
       return () => clearTimeout(timer);
     } catch (error) {
-      console.error("Error creating booking:", error);
-      toast.error(
-        "Failed to create booking. You can view it in My Bookings shortly."
-      );
-      // Still redirect to My Bookings even if there's an error
+      console.error("Booking Error:", error);
+      toast.error("Syncing your booking... please wait.");
+      
       const timer = setTimeout(() => {
         navigate("/my-bookings");
-      }, 3000);
+      }, 4000);
       return () => clearTimeout(timer);
     } finally {
       setIsCreatingBooking(false);
@@ -43,45 +42,78 @@ export default function SuccessPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-12 text-center">
-      <div className="mb-6">
-        <div className="text-6xl mb-4">✅</div>
-        <h1 className="text-4xl font-extrabold">Payment Successful!</h1>
-      </div>
+    <div className="min-h-screen bg-background flex items-center justify-center px-6 py-20 relative overflow-hidden">
+      
+      {/* Decorative Background Elements */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-secondary/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <p className="text-lg text-muted-foreground mb-4">
-        Thank you for your booking. Your tour reservation has been confirmed.
-      </p>
-
-      {isCreatingBooking && (
-        <div className="bg-card p-4 rounded-lg mb-6 text-sm text-muted-foreground">
-          <p className="text-blue-500 mt-2">Creating your booking...</p>
+      <div className="max-w-xl w-full bg-white border border-border p-10 md:p-16 rounded-[3rem] shadow-2xl text-center relative z-10">
+        
+        {/* Success Icon */}
+        <div className="flex justify-center mb-8">
+          <div className="h-24 w-24 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center animate-bounce">
+            <CheckCircle2 size={48} strokeWidth={3} />
+          </div>
         </div>
-      )}
 
-      <div className="space-y-3">
-        <p className="text-base">
-          A confirmation email will be sent to you shortly with all the details.
-        </p>
-        <p className="text-base text-blue-500 font-semibold">
-          Redirecting to My Bookings in 3 seconds...
-        </p>
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary/10 text-secondary rounded-full text-[10px] font-black uppercase tracking-widest">
+            <PartyPopper size={14} /> Confirmation Received
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-foreground leading-none">
+            Payment <span className="text-secondary">Successful!</span>
+          </h1>
+          <p className="text-foreground/60 font-medium text-lg italic py-4">
+            "Your expedition is locked in. A confirmation email is flying your way."
+          </p>
+        </div>
+
+        {/* Dynamic Status Box */}
+        <div className="my-10 p-6 bg-background border border-border rounded-2xl">
+          {isCreatingBooking ? (
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="animate-spin text-secondary" size={24} />
+              <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40">Syncing Booking Data...</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em] animate-pulse">
+                Redirecting to your dashboard in 4 seconds
+              </p>
+              <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-secondary animate-progress" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+          <Link
+            to="/my-bookings"
+            className="flex-1 bg-secondary hover:bg-secondary/90 text-white h-14 flex items-center justify-center rounded-xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-secondary/20"
+          >
+            My Bookings <ArrowRight size={16} className="ml-2" />
+          </Link>
+          <Link
+            to="/tours"
+            className="flex-1 bg-background border border-border hover:bg-muted text-foreground h-14 flex items-center justify-center rounded-xl font-black uppercase tracking-widest text-xs transition-all"
+          >
+            Explore More
+          </Link>
+        </div>
+
       </div>
 
-      <div className="mt-8 flex gap-4 justify-center">
-        <Link
-          to="/my-bookings"
-          className="bg-orange-500 text-black px-6 py-2 rounded hover:bg-orange-600"
-        >
-          View My Bookings
-        </Link>
-        <Link
-          to="/tours"
-          className="bg-gray-200 text-black px-6 py-2 rounded hover:bg-gray-300"
-        >
-          Browse More Tours
-        </Link>
-      </div>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes progress {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+        .animate-progress {
+          animation: progress 4s linear forwards;
+        }
+      `}} />
     </div>
   );
 }

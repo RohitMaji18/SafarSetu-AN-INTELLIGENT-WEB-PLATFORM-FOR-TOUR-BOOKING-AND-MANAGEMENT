@@ -44,6 +44,25 @@ module.exports = {
   				'3': 'hsl(var(--chart-3))',
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
+  			},
+  			// Custom Travel Colors - All 10 Colors
+  			'sand': 'hsl(var(--sand))',
+  			'ocean-light': 'hsl(var(--ocean-light))',
+  			'ocean-deep': 'hsl(var(--ocean-deep))',
+  			'ocean-deep-dark': 'hsl(var(--ocean-deep-dark))',
+  			'sunset': 'hsl(var(--sunset))',
+  			'sunset-light': 'hsl(var(--sunset-light))',
+  			'forest': 'hsl(var(--forest))',
+  			'pink': 'hsl(var(--pink))',
+  			'warning': 'hsl(var(--warning))',
+  			'green': 'hsl(var(--green))',
+  			success: {
+  				DEFAULT: 'hsl(var(--success))',
+  				foreground: 'hsl(var(--success-foreground))'
+  			},
+  			warning: {
+  				DEFAULT: 'hsl(var(--warning))',
+  				foreground: 'hsl(var(--warning-foreground))'
   			}
   		},
   		borderRadius: {

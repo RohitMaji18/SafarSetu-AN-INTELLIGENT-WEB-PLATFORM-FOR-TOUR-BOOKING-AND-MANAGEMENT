@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import AuthContext from "../context/AuthContext";
 import apiClient from "../services/api";
+import { 
+  Users, Calendar, Map as MapIcon, IndianRupee, 
+  ArrowRight, Loader2, ShieldCheck, Activity,
+  UserCheck, ClipboardList, Briefcase
+} from "lucide-react";
 
 export default function AdminDashboard() {
   const { user } = useContext(AuthContext);
@@ -15,7 +20,6 @@ export default function AdminDashboard() {
       navigate("/");
       return;
     }
-
     fetchDashboardStats();
   }, [user, navigate]);
 
@@ -24,116 +28,124 @@ export default function AdminDashboard() {
       const response = await apiClient.get("/admin/dashboard");
       setStats(response.data.data);
     } catch (error) {
-      toast.error("Failed to fetch dashboard statistics");
+      toast.error("Dashboard synchronization failed.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        Loading...
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="h-screen flex flex-col items-center justify-center bg-background">
+      <Loader2 className="h-10 w-10 animate-spin text-secondary mb-4" />
+      <p className="font-black uppercase tracking-widest text-[10px] text-foreground/40">Loading Command Center...</p>
+    </div>
+  );
 
-  if (!stats) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        No data available
-      </div>
-    );
-  }
+  if (!stats) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
+    <div className="min-h-screen bg-background py-16 px-6">
+      <div className="max-w-7xl mx-auto space-y-12">
+        
+        {/* 1. Dashboard Header */}
+        <div className="text-left space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary/10 text-secondary rounded-full text-[10px] font-black uppercase tracking-widest">
+            <ShieldCheck size={14} /> System Administrator
+          </div>
+          <h1 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter text-foreground leading-none">
+            Business <span className="text-secondary">Metrics.</span>
+          </h1>
+        </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* 2. Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            label="Total Users"
+            label="Total Travelers"
             value={stats.totalUsers}
-            icon="👥"
-            color="bg-blue-500"
+            icon={<Users size={24} />}
+            trend="Active Registry"
           />
           <StatCard
-            label="Total Bookings"
+            label="Bookings"
             value={stats.totalBookings}
-            icon="📅"
-            color="bg-green-500"
+            icon={<Calendar size={24} />}
+            trend="Scheduled Tours"
           />
           <StatCard
-            label="Total Tours"
+            label="Listed Tours"
             value={stats.totalTours}
-            icon="🗺️"
-            color="bg-purple-500"
+            icon={<MapIcon size={24} />}
+            trend="Global Routes"
           />
           <StatCard
             label="Total Revenue"
             value={`₹${stats.totalRevenue.toLocaleString("en-IN")}`}
-            icon="💰"
-            color="bg-orange-500"
+            icon={<IndianRupee size={24} />}
+            trend="Gross Income"
+            highlight={true}
           />
         </div>
 
-        {/* Management Links */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* 3. Management Links */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <ManagementCard
             title="Manage Users"
-            description="View, edit, or delete users"
+            description="Control access levels and traveler data"
             link="/admin/users"
-            icon="👤"
+            icon={<UserCheck size={28} />}
           />
           <ManagementCard
             title="Manage Bookings"
-            description="View and manage all bookings"
+            description="Audit and verify transaction status"
             link="/admin/bookings"
-            icon="📋"
+            icon={<ClipboardList size={28} />}
           />
           <ManagementCard
             title="Manage Tours"
-            description="Create, edit, or delete tours"
+            description="Deploy or modify adventure packages"
             link="/admin/tours"
-            icon="🧳"
+            icon={<Briefcase size={28} />}
           />
         </div>
 
-        {/* Recent Bookings */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold mb-4">Recent Bookings</h2>
+        {/* 4. Recent Transactions Table */}
+        <div className="bg-white border border-border rounded-[2.5rem] shadow-2xl shadow-foreground/5 overflow-hidden text-left">
+          <div className="p-8 border-b border-border flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-black uppercase italic tracking-tight">Recent Activity</h2>
+              <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest mt-1">Latest tour registrations</p>
+            </div>
+            <Activity className="text-secondary animate-pulse" size={20} />
+          </div>
+          
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-100 border-b">
+              <thead className="bg-muted/30">
                 <tr>
-                  <th className="px-4 py-2 text-left">User</th>
-                  <th className="px-4 py-2 text-left">Tour</th>
-                  <th className="px-4 py-2 text-left">Date</th>
-                  <th className="px-4 py-2 text-left">Amount</th>
-                  <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-foreground/40">User</th>
+                  <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-foreground/40">Expedition</th>
+                  <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-foreground/40">Date</th>
+                  <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-foreground/40">Amount</th>
+                  <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-foreground/40">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border">
                 {stats.recentBookings.map((booking) => (
-                  <tr key={booking._id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-2">{booking.user?.name}</td>
-                    <td className="px-4 py-2">{booking.tour?.title}</td>
-                    <td className="px-4 py-2">
+                  <tr key={booking._id} className="hover:bg-muted/10 transition-colors">
+                    <td className="px-8 py-5 font-bold text-sm">{booking.user?.name}</td>
+                    <td className="px-8 py-5 text-sm font-medium text-foreground/60">{booking.tour?.title}</td>
+                    <td className="px-8 py-5 text-sm font-medium text-foreground/40">
                       {new Date(booking.bookingDate).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-8 py-5 font-black text-sm">
                       ₹{booking.totalPrice.toLocaleString("en-IN")}
                     </td>
-                    <td className="px-4 py-2">
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                          booking.status === "confirmed"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
+                    <td className="px-8 py-5">
+                      <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                        booking.status === "confirmed"
+                          ? "bg-green-500/10 text-green-600"
+                          : "bg-amber-500/10 text-amber-600"
+                      }`}>
                         {booking.status}
                       </span>
                     </td>
@@ -148,16 +160,17 @@ export default function AdminDashboard() {
   );
 }
 
-function StatCard({ label, value, icon, color }) {
+function StatCard({ label, value, icon, trend, highlight }) {
   return (
-    <div className={`${color} text-white rounded-lg shadow-md p-6`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm opacity-90">{label}</p>
-          <p className="text-3xl font-bold">{value}</p>
+    <div className={`p-8 rounded-[2.5rem] border border-border shadow-sm text-left transition-all hover:border-secondary/20 group ${highlight ? 'bg-foreground text-white' : 'bg-white text-foreground'}`}>
+      <div className="flex justify-between items-start mb-6">
+        <div className={`p-3 rounded-2xl ${highlight ? 'bg-secondary' : 'bg-background border border-border text-secondary'}`}>
+          {icon}
         </div>
-        <div className="text-4xl">{icon}</div>
+        <div className="text-[9px] font-black uppercase tracking-widest opacity-40">{trend}</div>
       </div>
+      <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${highlight ? 'text-white/40' : 'text-foreground/40'}`}>{label}</p>
+      <p className="text-3xl font-black tracking-tighter">{value}</p>
     </div>
   );
 }
@@ -167,14 +180,16 @@ function ManagementCard({ title, description, link, icon }) {
   return (
     <div
       onClick={() => navigate(link)}
-      className="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition"
+      className="bg-white border border-border p-8 rounded-[2.5rem] cursor-pointer hover:shadow-2xl hover:border-secondary transition-all group text-left"
     >
-      <div className="text-4xl mb-3">{icon}</div>
-      <h3 className="text-xl font-bold mb-2">{title}</h3>
-      <p className="text-gray-600 text-sm mb-4">{description}</p>
-      <button className="text-orange-500 font-semibold hover:text-orange-600">
-        Go to {title.split(" ")[1]} →
-      </button>
+      <div className="h-14 w-14 flex items-center justify-center rounded-2xl bg-background border border-border text-secondary group-hover:scale-110 transition-transform mb-6">
+        {icon}
+      </div>
+      <h3 className="text-xl font-black uppercase italic tracking-tight mb-2 leading-none">{title}</h3>
+      <p className="text-foreground/40 text-xs font-bold uppercase tracking-widest mb-6 leading-relaxed">{description}</p>
+      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-secondary group-hover:gap-4 transition-all">
+        Open Module <ArrowRight size={14} />
+      </div>
     </div>
   );
 }

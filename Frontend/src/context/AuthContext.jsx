@@ -1,5 +1,5 @@
-import React, { createContext, useState, useEffect } from "react";
-import apiClient from "../services/api"; // We will update this file next
+import React, { createContext, useState, useEffect, useContext } from "react"; // Added useContext
+import apiClient from "../services/api";
 
 const AuthContext = createContext();
 
@@ -7,21 +7,13 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // This runs when the app first loads
   useEffect(() => {
     const checkLoggedIn = async () => {
       const token = localStorage.getItem("token");
       if (token) {
         try {
-          // Set the token for all future requests
-          apiClient.defaults.headers.common[
-            "Authorization"
-          ] = `Bearer ${token}`;
-
-          // Get user data from your backend's "/me" route
+          apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
           const { data } = await apiClient.get("/users/me");
-
-          // Your backend sends { user: ... }, so we use data.user
           setUser(data.user);
         } catch (error) {
           console.error("Auth Error:", error);
@@ -31,7 +23,6 @@ export const AuthProvider = ({ children }) => {
       }
       setLoading(false);
     };
-
     checkLoggedIn();
   }, []);
 
@@ -47,7 +38,6 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  // This function will be used on the profile page
   const updateUser = (updatedUserData) => {
     setUser(updatedUserData);
   };
@@ -58,5 +48,8 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+// --- ADD THIS LINE AT THE BOTTOM ---
+export const useAuth = () => useContext(AuthContext); 
 
 export default AuthContext;

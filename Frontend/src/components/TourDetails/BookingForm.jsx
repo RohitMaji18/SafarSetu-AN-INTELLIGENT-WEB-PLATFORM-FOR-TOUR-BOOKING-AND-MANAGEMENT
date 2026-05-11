@@ -2,121 +2,125 @@ import React, { useMemo, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import AuthContext from "../../context/AuthContext";
+import { CurrencyContext } from "../../context/CurrencyContext";
 import { createCheckoutSession } from "../../services/api";
-import { loadStripe } from "@stripe/stripe-js";
+import { Calendar, Users, ArrowRight, ShieldCheck, Info, Loader2 } from "lucide-react";
 
-export default function BookingForm({
-  tourId,
-  pricePerPerson = 0,
-  onBooked,
-  availableDates = [],
-  tourTitle = "Tour Booking",
+export default function BookingForm({ 
+  tourId, 
+  pricePerPerson = 0, 
+  tourTitle = "Tour Booking", 
+  groupSize = 10, 
+  duration = 1 
 }) {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useContext(AuthContext);
-  const [date, setDate] = useState(availableDates?.[0] || "");
+  const { user } = useContext(AuthContext);
+  const { formatPrice, currency } = useContext(CurrencyContext);
+  
+  const [date, setDate] = useState("");
   const [people, setPeople] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  const total = useMemo(
-    () => Number(pricePerPerson) * Number(people || 1),
-    [pricePerPerson, people]
-  );
+  // Total Calculation
+  const totalAmount = useMemo(() => Number(pricePerPerson) * Number(people || 1), [pricePerPerson, people]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!date) return toast.error("Please select a travel date.");
+    
+    if (people > groupSize) {
+        return toast.error(`Maximum capacity for this tour is ${groupSize} people.`);
+    }
+
+    if (!user) { 
+        toast.error("Please login to continue booking."); 
+        navigate("/login"); 
+        return; 
+    }
+    
     setLoading(true);
     try {
-      // Require a logged-in user to create a checkout session
-      if (!user) {
-        toast.error("Please log in to book this tour.");
-        navigate("/login");
-        return;
-      }
-      // Get Stripe public key from env
-      const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
-      if (!stripePublicKey) {
-        throw new Error("Stripe public key not found. Check your .env file.");
-      }
-
-      // Call backend to create checkout session
       const res = await createCheckoutSession({
-        tourId,
-        tourTitle,
-        numberOfPeople: Number(people),
-        totalPrice: total,
-        bookingDate: date || new Date().toISOString(),
+        tourId, 
+        tourTitle, 
+        numberOfPeople: Number(people), 
+        totalPrice: totalAmount, 
+        bookingDate: date,
       });
-
-      // Get session URL from backend
-      const { sessionUrl } = res.data;
-
-      if (!sessionUrl) {
-        throw new Error("Failed to create checkout session");
-      }
-
-      // Redirect to Stripe checkout
-      window.location.href = sessionUrl;
+      // Redirect to Stripe
+      window.location.href = res.data.sessionUrl;
     } catch (err) {
-      console.error(err);
-      // api interceptor will show toast for errors
-    } finally {
-      setLoading(false);
-    }
+      toast.error("Payment gateway connection failed. Try again.");
+    } finally { setLoading(false); }
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 border rounded-lg p-4 mx-auto max-w-md"
-    >
-      <div>
-        <label className="block text-sm text-muted-foreground mb-1">
-          Select date
-        </label>
-        <select
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="w-full input"
-        >
-          {(availableDates && availableDates.length > 0
-            ? availableDates
-            : [new Date().toISOString().slice(0, 10)]
-          ).map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm text-muted-foreground mb-1">
-          People
+    <form onSubmit={handleSubmit} className="space-y-6">
+      
+      {/* 1. Date Selection */}
+      <div className="space-y-2">
+        <label className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-foreground/50">
+          <span className="flex items-center gap-2"><Calendar size={14} className="text-secondary" /> Travel Date</span>
+          <span className="text-secondary font-bold">{duration} Days Trip</span>
         </label>
         <input
-          className="input"
-          type="number"
-          min={1}
-          value={people}
-          onChange={(e) => setPeople(e.target.value)}
+          type="date"
+          min={new Date().toISOString().slice(0, 10)}
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="w-full bg-background border border-border p-4 rounded-xl font-bold text-foreground outline-none focus:border-secondary transition-all"
         />
       </div>
 
-      <div className="text-lg font-semibold">
-        Total: ₹{Number(total).toLocaleString("en-IN")}
+      {/* 2. People Count */}
+      <div className="space-y-2">
+        <label className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-foreground/50">
+          <span className="flex items-center gap-2"><Users size={14} className="text-secondary" /> Number of People</span>
+          <span>Limit: {groupSize}</span>
+        </label>
+        <input
+          className="w-full bg-background border border-border p-4 rounded-xl font-bold text-foreground focus:border-secondary outline-none transition-all"
+          type="number" 
+          min={1} 
+          max={groupSize} 
+          value={people}
+          onChange={(e) => {
+              const val = Number(e.target.value);
+              if (val <= groupSize) setPeople(val);
+              else toast.warning(`Max ${groupSize} seats per booking.`);
+          }}
+        />
       </div>
 
-      <div className="flex justify-center">
-        <button
-          type="submit"
-          className={`text-black bg-orange-500 hover:bg-orange-600 focus:ring-0 px-4 py-2 rounded ${
-            loading || authLoading ? "opacity-60 cursor-not-allowed" : ""
-          }`}
-          disabled={loading || authLoading}
-        >
-          {loading ? "Processing..." : authLoading ? "Checking..." : "Book now"}
-        </button>
+      {/* 3. Simple Price Breakdown */}
+      <div className="p-6 bg-secondary/5 border border-secondary/20 rounded-2xl flex justify-between items-center">
+        <div>
+          <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest mb-1">Total Payable</p>
+          <p className="text-3xl font-black text-foreground italic">{formatPrice(totalAmount)}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[9px] font-black text-secondary uppercase tracking-widest">Currency</p>
+          <p className="text-xs font-bold text-foreground">{currency}</p>
+        </div>
+      </div>
+
+      {/* 4. Action Button - Using Vibrant Orange */}
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full flex items-center justify-center gap-3 bg-secondary hover:bg-secondary/90 text-white py-5 rounded-xl font-black uppercase tracking-widest transition-all shadow-xl shadow-secondary/20 active:scale-[0.98] disabled:opacity-50"
+      >
+        {loading ? (
+          <Loader2 className="animate-spin" size={20} />
+        ) : (
+          <>Book Your Adventure <ArrowRight size={20} /></>
+        )}
+      </button>
+
+      {/* 5. Trust Badge */}
+      <div className="flex justify-center items-center gap-2 opacity-50">
+          <ShieldCheck size={14} className="text-green-600" />
+          <span className="text-[9px] font-black uppercase tracking-widest">Secure Checkout via Stripe</span>
       </div>
     </form>
   );
