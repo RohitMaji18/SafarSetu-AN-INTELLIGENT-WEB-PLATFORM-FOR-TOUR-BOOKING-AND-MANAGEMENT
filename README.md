@@ -1,4 +1,4 @@
-# 🌍 TravlyStiQ - AI-Powered Tour Booking Platform
+# 🌍 SafarSetu - AI-Powered Tour Booking Platform
 
 A full-stack MERN application for booking adventure tours with AI-powered itinerary planning, Stripe payment integration, and real-time booking management.
 
